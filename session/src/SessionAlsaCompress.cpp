@@ -45,6 +45,8 @@
 #include <fstream>
 #include <agm/agm_api.h>
 
+#include <cutils/properties.h>
+
 #define CHS_2 2
 #define AACObjHE_PS 29
 
@@ -1263,6 +1265,7 @@ int SessionAlsaCompress::start(Stream * s)
     size_t payloadSize = 0;
     struct sessionToPayloadParam streamData;
     memset(&streamData, 0, sizeof(struct sessionToPayloadParam));
+    int32_t master_volume;
 
     PAL_DBG(LOG_TAG, "Enter");
 
@@ -1477,6 +1480,27 @@ int SessionAlsaCompress::start(Stream * s)
             status = setParameters(s, TAG_STREAM_VOLUME,
                     PAL_PARAM_ID_VOLUME_USING_SET_PARAM, (void *)pld);
             delete[] volPayload;
+            // Explicitly set the master gain for stereo playback
+            // if ro.vendor.audio.stereo_master_volume is set.
+            // This is necessary when the acdb does not initialize the
+            // master gain to 1.
+            master_volume = property_get_int32("ro.vendor.audio.stereo_master_volume", -1);
+            if (master_volume >= 0 && streamHandle->mVolumeData->no_of_volpair == 2) {
+                volSize = (sizeof(struct pal_volume_data) + sizeof(struct pal_channel_vol_kv));
+                volPayload = new uint8_t[sizeof(pal_param_payload) + volSize]();
+                pal_volume_data* volumeData =
+                        (pal_volume_data*)(volPayload + sizeof(pal_param_payload));
+
+                // channel_mask of volume_pair is not needed to set the master gain
+                volumeData->no_of_volpair = 1;
+                volumeData->volume_pair[0].vol = master_volume;
+
+                pal_param_payload* pld = (pal_param_payload*)volPayload;
+                pld->payload_size = volSize;
+                status = setParameters(streamHandle, TAG_STREAM_VOLUME,
+                                       PAL_PARAM_ID_VOLUME_USING_SET_PARAM, (void*)pld);
+                delete[] volPayload;
+            }
         }
     } else {
         // Setting the volume as no default volume is set now in stream open
