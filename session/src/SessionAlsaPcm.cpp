@@ -1393,7 +1393,7 @@ pcm_start:
             volPayload = new uint8_t[sizeof(pal_param_payload) +
                 volSize]();
             pal_param_payload *pld = (pal_param_payload *)volPayload;
-            pld->payload_size = sizeof(struct pal_volume_data);
+            pld->payload_size = volSize;
             memcpy(pld->payload, s->mVolumeData, volSize);
             status = setParameters(s, TAG_STREAM_VOLUME,
                     PAL_PARAM_ID_VOLUME_USING_SET_PARAM, (void *)pld);
