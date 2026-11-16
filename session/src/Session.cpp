@@ -406,6 +406,8 @@ int Session::setEffectParametersNonTKV(Stream *s __unused, effect_pal_payload_t 
 
     PAL_DBG(LOG_TAG, "Enter.");
 
+    effectCustomPayload = (pal_effect_custom_payload_t *)effectPayload->payload;
+
     /* This is set param call, find out miid first */
     status = getModuleInfo(control, effectPayload->tag, &miid, NULL, &device);
     if (status || !miid) {
@@ -416,7 +418,6 @@ int Session::setEffectParametersNonTKV(Stream *s __unused, effect_pal_payload_t 
     }
 
     /* Now we got the miid, build set param payload */
-    effectCustomPayload = (pal_effect_custom_payload_t *)effectPayload->payload;
     status = builder.payloadCustomParam(&payloadData, &payloadSize,
             effectCustomPayload->data,
             effectPayload->payloadSize - sizeof(uint32_t),

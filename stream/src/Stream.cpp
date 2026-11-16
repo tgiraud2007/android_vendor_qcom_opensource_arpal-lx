@@ -371,6 +371,12 @@ int32_t Stream::setEffectParameters(void *effect_param)
         return -EINVAL;
     }
 
+    if (!session) {
+        PAL_ERR(LOG_TAG, "Invalid session: stream has no session");
+        mStreamMutex.unlock();
+        return -EINVAL;
+    }
+
     pal_param_payload *pal_param = (pal_param_payload *)effect_param;
     effect_pal_payload_t *effectPayload = (effect_pal_payload_t *)pal_param->payload;
     status = session->setEffectParameters(this, effectPayload);
