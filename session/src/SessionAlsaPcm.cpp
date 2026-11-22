@@ -1195,8 +1195,13 @@ set_mixer:
                                                    txAifBackEnds[0].second.data(),
                                                    TAG_STREAM_MFC_SR, &miid);
                        if (status != 0) {
-                           PAL_ERR(LOG_TAG, "getModuleInstanceId failed\n");
-                           goto exit;
+                           /*
+                            * Older ACDBs have no MFC in the ULL record graph.
+                            * Keep the pre-MFC behaviour instead of failing.
+                            */
+                           PAL_INFO(LOG_TAG, "No MFC in ULL record graph, skipping MFC config");
+                           status = 0;
+                           goto ull_mfc_done;
                        }
                        PAL_DBG(LOG_TAG, "ULL record, miid : %x id = %d\n", miid, pcmDevIds.at(0));
                        if (isPalPCMFormat(sAttr.in_media_config.aud_fmt_id))
@@ -1223,6 +1228,8 @@ set_mixer:
                            PAL_ERR(LOG_TAG, "setMixerParameter failed");
                            goto exit;
                        }
+ull_mfc_done:
+                       ;
             }
             if (ResourceManager::isLpiLoggingEnabled()) {
                 PAL_INFO(LOG_TAG, "LPI data logging Param ON");
