@@ -8067,6 +8067,15 @@ int32_t ResourceManager::a2dpSuspend(pal_device_id_t dev_id)
                 getDeviceInfo(switchDevDattr.id, (pal_stream_type_t)0,
                     switchDevDattr.custom_config.custom_key, &devInfo);
                 updateSndName(switchDevDattr.id, devInfo.sndDevName);
+                if (!ResourceManager::activeGroupDevConfig &&
+                    !activeA2dpStreams.empty()) {
+                    struct pal_stream_attributes sAttr = {};
+                    struct pal_device streamDevAttr = {};
+                    std::vector<Stream *> streamsToSwitch;
+                    activeA2dpStreams[0]->getStreamAttributes(&sAttr);
+                    checkAndUpdateGroupDevConfig(&switchDevDattr, &sAttr,
+                            streamsToSwitch, &streamDevAttr, true);
+                }
             }
         }
     } else {
@@ -8319,9 +8328,9 @@ int32_t ResourceManager::a2dpResume(pal_device_id_t dev_id)
             }
             (*sIter)->addPalDevice(*sIter, &a2dpDattr);
             (*sIter)->suspendedDevIds.clear();
-            status = (*sIter)->getVolumeData(volume);
-            if (status) {
-                PAL_ERR(LOG_TAG, "getVolumeData failed %d", status);
+            int volStatus = (*sIter)->getVolumeData(volume);
+            if (volStatus) {
+                PAL_ERR(LOG_TAG, "getVolumeData failed %d", volStatus);
                 (*sIter)->unlockStreamMutex();
                 continue;
             }
@@ -8329,9 +8338,9 @@ int32_t ResourceManager::a2dpResume(pal_device_id_t dev_id)
              * volume gets cached if a2dpMuted is set to true
              */
             (*sIter)->a2dpMuted = false;
-            status = (*sIter)->setVolume(volume);
-            if (status) {
-                PAL_ERR(LOG_TAG, "setVolume failed %d", status);
+            volStatus = (*sIter)->setVolume(volume);
+            if (volStatus) {
+                PAL_ERR(LOG_TAG, "setVolume failed %d", volStatus);
                 (*sIter)->a2dpMuted = true;
                 (*sIter)->unlockStreamMutex();
                 continue;

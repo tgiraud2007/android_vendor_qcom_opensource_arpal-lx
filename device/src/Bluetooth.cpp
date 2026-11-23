@@ -2161,11 +2161,11 @@ int32_t BtA2dp::setDeviceParameter(uint32_t param_id, void *param)
             if (param_a2dp->dev_id == PAL_DEVICE_OUT_BLUETOOTH_A2DP && param_a2dp->is_in_call)
                 skip_switch = true;
 
-            if (!skip_switch){
+            if (!skip_switch) {
                 if (ResourceManager::isDummyDevEnabled) {
-                      rm->a2dpResumeFromDummy(param_a2dp->dev_id);
+                    status = rm->a2dpResumeFromDummy(param_a2dp->dev_id);
                 } else {
-                    rm->a2dpResume(param_a2dp->dev_id);
+                    status = rm->a2dpResume(param_a2dp->dev_id);
                 }
             }
         }
