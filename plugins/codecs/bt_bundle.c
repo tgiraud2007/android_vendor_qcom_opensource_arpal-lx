@@ -39,7 +39,6 @@
 #include <common_enc_dec_api.h>
 #include <media_fmt_api.h>
 #include <ldac_encoder_api.h>
-#include <aac_encoder_api.h>
 
 static int bt_aac_populate_enc_frame_size_ctrl(custom_block_t *blk, uint32_t ctl_type,
                                         uint32_t ctl_value)
@@ -57,36 +56,6 @@ static int bt_aac_populate_enc_frame_size_ctrl(custom_block_t *blk, uint32_t ctl
     param = (struct param_id_enc_frame_size_control_t*) blk->payload;
     param->frame_size_control_type = ctl_type;
     param->frame_size_control_value = ctl_value;
-    return 0;
-}
-
-
-static int bt_aac_populate_bitrate_level_map(custom_block_t *blk,
-        struct quality_level_to_bitrate_info *level_map)
-{
-    struct param_id_aac_bitrate_level_map_payload_t *param = NULL;
-    uint32_t tbl_size = level_map->num_levels * sizeof(struct aac_bitrate_level_map_t);
-
-    blk->param_id = PARAM_ID_AAC_BIT_RATE_LEVEL_MAP;
-    blk->payload_sz = sizeof(struct param_id_aac_bitrate_level_map_payload_t);
-    blk->payload_sz += tbl_size;
-    blk->payload = calloc(1, blk->payload_sz);
-    if (!blk->payload) {
-        blk->payload_sz = 0;
-        return -ENOMEM;
-    }
-
-    if (sizeof(aac_bitrate_level_map_t) != sizeof(bit_rate_level_map_t)) {
-        ALOGE("%s: level map size mismatches", __func__);
-        return -EINVAL;
-    }
-
-    param = (struct param_id_aac_bitrate_level_map_payload_t *)blk->payload;
-    param->num_levels = level_map->num_levels;
-    aac_bitrate_level_map_t *tbl_ptr = (aac_bitrate_level_map_t *)((int8_t *)blk->payload +
-        sizeof(struct param_id_aac_bitrate_level_map_payload_t));
-
-    memcpy(tbl_ptr, &(level_map->bit_rate_level_map[0]), tbl_size);
     return 0;
 }
 
@@ -116,7 +85,7 @@ static int aac_pack_enc_config(bt_codec_t *codec, void *src, void **dst)
     enc_payload->bit_format     = aac_bt_cfg->bits_per_sample;
     enc_payload->sample_rate    = aac_bt_cfg->sampling_rate;
     enc_payload->channel_count  = aac_bt_cfg->channels;
-    enc_payload->is_abr_enabled = aac_bt_cfg->abr_ctl_ptr && aac_bt_cfg->abr_ctl_ptr->is_abr_enabled;
+    enc_payload->is_abr_enabled = false;
     enc_payload->num_blks       = num_blks;
 
     for (i = 0; i < num_blks; i++) {
@@ -127,15 +96,8 @@ static int aac_pack_enc_config(bt_codec_t *codec, void *src, void **dst)
         }
     }
 
-    ALOGD("%s: AAC ABR mode is %d", __func__, enc_payload->is_abr_enabled);
-    if (!enc_payload->is_abr_enabled) {
-        /* populate payload for PARAM_ID_REAL_MODULE_ID */
-        ret = bt_base_populate_real_module_id(blk[0], MODULE_ID_AAC_ENC);
-    } else {
-        /* populate payload for PARAM_ID_AAC_BIT_RATE_LEVEL_MAP */
-        ret = bt_aac_populate_bitrate_level_map(blk[0],
-                &(aac_bt_cfg->abr_ctl_ptr->level_to_bitrate_map));
-    }
+    /* populate payload for PARAM_ID_REAL_MODULE_ID */
+    ret = bt_base_populate_real_module_id(blk[0], MODULE_ID_AAC_ENC);
     if (ret)
         goto free_payload;
 
